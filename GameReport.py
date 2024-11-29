@@ -220,6 +220,7 @@ class GameReport:
         for i in range(len(self.years)):
             categories.append(str(self.year+i))
         self.axs[2,0].bar(categories,self.years)
+        self.axs[2,0].set_ylabel('Number of Games')
 
     def getGameAccuracies(self):
         try:
@@ -236,6 +237,7 @@ class GameReport:
             self.accuracies[i] /= (self.years[i] - self.uncounted[i])
         self.axs[2,1].bar(categories,self.accuracies)
         self.axs[2,1].set_ylim(0,100)
+        self.axs[2,1].set_ylabel('Average Accuracy')
 
     def getAccuracyLineData(self):
         try:
