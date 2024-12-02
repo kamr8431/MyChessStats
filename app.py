@@ -23,8 +23,11 @@ def generate_graph():
     os.makedirs(STATIC_DIR, exist_ok=True)
 
     # Generate the chart and save it to the static folder
-    chart = GameReport(username)
-    chart.getGameReport(CHART_FILEPATH)
+    try:
+        chart = GameReport(username)
+        chart.getGameReport(CHART_FILEPATH)
+    except Exception:
+        return render_template("error.html")
 
     # Pass the graph URL to the template
     graph_url = url_for('static', filename=CHART_FILENAME)
