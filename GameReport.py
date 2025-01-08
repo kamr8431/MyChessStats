@@ -7,7 +7,6 @@ import re
 from datetime import date,datetime
 import matplotlib.dates as mdates
 import matplotlib
-import io
 
 
 class GameReport:
@@ -349,7 +348,10 @@ class GameReport:
         self.axs[4,1].set_yticklabels(['8', '7', '6', '5', '4', '3', '2', '1'])
 
     def getOpenings(self):
-        opening = self.find('ECOUrl').split('/')[-1].split('-')
+        try:
+            opening = self.find('ECOUrl').split('/')[-1].split('-')
+        except Exception:
+            return
         i = 0
         while i < len(opening):
             if opening[i].isalpha():
@@ -466,7 +468,6 @@ class GameReport:
         self.getOpeningsGraph()
 
         self.fig.tight_layout()
-        buf = io.BytesIO()
         self.fig.savefig(file_path)
         plt.close()
         #plt.show()
