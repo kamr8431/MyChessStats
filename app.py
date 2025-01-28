@@ -26,7 +26,8 @@ def generate_graph():
     try:
         chart = GameReport(username)
         chart.getGameReport(CHART_FILEPATH)
-    except Exception:
+    except Exception as e:
+        print(e)
         return render_template("error.html")
 
     # Pass the graph URL to the template
@@ -38,6 +39,5 @@ def download():
     return send_file(CHART_FILEPATH, mimetype='image/png', as_attachment=True, download_name='chart.png')
 
 if __name__ == '__main__':
-    #app.run(host='127.0.0.1', port=5000)
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

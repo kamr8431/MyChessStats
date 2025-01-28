@@ -26,7 +26,7 @@ class GameReport:
         self.days = [0,0,0,0,0,0,0]
         self.total = len(self.games)
         self.uncounted = self.years + []
-        self.fig, self.axs = plt.subplots(6, 2, figsize=(15, 12))
+        self.fig, self.axs = plt.subplots(7, 2, figsize=(15, 12))
         self.seconds = 0
         self.time_control = [0,0,0]
         self.win_loss = [0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -41,10 +41,19 @@ class GameReport:
         self.blitzy = []
         self.rapidx = []
         self.rapidy = []
-        self.move_times = [[0,0]+[] for i in range(100)]
+        self.rapid_move_times = [[0,0]+[] for i in range(100)]
+        self.blitz_move_times = [[0,0]+[] for i in range(100)]
+        self.bullet_move_times = [[0,0]+[] for i in range(100)]
         self.board = [[0,0,0,0,0,0,0,0]+[] for i in range(8)]
         self.white_openings = {}
         self.black_openings = {}
+        '''self.clock_management_move_num = 30
+        self.rapid_up = {'win':[0 for i in range(self.clock_management_move_num)],'draw':[0 for i in range(self.clock_management_move_num)],'loss':[0 for i in range(self.clock_management_move_num)]}
+        self.rapid_down = {'win':[0 for i in range(self.clock_management_move_num)],'draw':[0 for i in range(self.clock_management_move_num)],'loss':[0 for i in range(self.clock_management_move_num)]}
+        self.blitz_up = {'win':[0 for i in range(self.clock_management_move_num)],'draw':[0 for i in range(self.clock_management_move_num)],'loss':[0 for i in range(self.clock_management_move_num)]}
+        self.blitz_down = {'win':[0 for i in range(self.clock_management_move_num)],'draw':[0 for i in range(self.clock_management_move_num)],'loss':[0 for i in range(self.clock_management_move_num)]}
+        self.bullet_up = {'win':[0 for i in range(self.clock_management_move_num)],'draw':[0 for i in range(self.clock_management_move_num)],'loss':[0 for i in range(self.clock_management_move_num)]}
+        self.bullet_down = {'win':[0 for i in range(self.clock_management_move_num)],'draw':[0 for i in range(self.clock_management_move_num)],'loss':[0 for i in range(self.clock_management_move_num)]}'''
 
     def fetch_all_games(self):
         response = get_player_game_archives(self.username)
@@ -74,7 +83,7 @@ class GameReport:
         self.last_game = self.games[self.index]
 
     def getPieceData(self):
-        game = self.getMoveList()[::8]
+        game = self.getMoveList(self.getColor())[::8]
         for move in game:
             if move[0] == 'B':
                     self.pieces[1] += 1
@@ -281,17 +290,15 @@ class GameReport:
     def getMoveTimeData(self):
         #if self.last_game['time_class'].lower() == 'daily':
         #return None
-
-        times = self.getMoveList()
-
-        if len(times) < 2:
+        if self.last_game['time_class'] == 'rapid':
+            move_times = self.rapid_move_times
+        elif self.last_game['time_class'] == 'blitz':
+            move_times = self.blitz_move_times
+        elif self.last_game['time_class'] == 'bullet':
+            move_times = self.bullet_move_times
+        times = self.getTimeList(self.getColor())
+        if times == None:
             return None
-            
-        times.pop(0)
-        times.pop(0)
-        times = times[::8]
-        if len(times) > 101:
-            times = times[:101]
 
         bonus_time = 0
 
@@ -299,27 +306,96 @@ class GameReport:
             bonus_time = int(self.last_game['time_control'].split('+')[-1])
             
         for i in range(len(times)-1):
-            self.move_times[i][0] += self.getTimeDiff(times[i],times[i+1])+bonus_time
-            self.move_times[i][1] += 1
+            move_times[i][0] += self.getTimeDiff(times[i],times[i+1])+bonus_time
+            move_times[i][1] += 1
 
-    def getMoveTimeGraph(self):
-        for i in range(len(self.move_times)):
-            if self.move_times[i][1] == 0:
-                self.move_times[i] = 0
+    def getMoveTimeGraph(self,move_times,x,y,mode):
+        if len(move_times)>0:
+            for i in range(len(move_times)):
+                if move_times[i][1] == 0:
+                    move_times[i] = 0
+                else:
+                    move_times[i] = move_times[i][0]/move_times[i][1]
+            categories = [str(i) for i in range(1,101)]
+            self.axs[x,y].bar(categories,move_times)
+        self.axs[x,y].set_xticks([0,9,19,29,39,49,59,69,79,89,99])
+        self.axs[x,y].set_title(mode)
+        self.axs[x,y].set_xlabel('Move Number')
+        self.axs[x,y].set_ylabel('Time Spent (Seconds)')
+    
+    '''def getClockManagementData(self):
+        white_times = self.getTimeList('white')
+        black_times = self.getTimeList('black')
+        if white_times == None or black_times == None:
+            return
+        white_times = [self.getTime(time) for time in white_times]
+        black_times = [self.getTime(time) for time in black_times]
+        if self.last_game['time_class'] == 'rapid':
+            up = self.rapid_up
+            down = self.rapid_down
+        elif self.last_game['time_class'] == 'blitz':
+            up = self.blitz_up
+            down = self.blitz_down
+        elif self.last_game['time_class'] == 'bullet':
+            up = self.bullet_up
+            down = self.bullet_down
+        for i in range(min(min(len(white_times),len(black_times)),self.clock_management_move_num)):
+            if self.getColor() == 'white':
+                time = white_times[i]
+                opp_time = black_times[i]
             else:
-                self.move_times[i] = self.move_times[i][0]/self.move_times[i][1]
-            #print(self.move_times[i])
-        categories = [str(i) for i in range(1,101)]
-        self.axs[4,0].bar(categories,self.move_times)
-        self.axs[4,0].set_xticks([0,9,19,29,39,49,59,69,79,89,99])
-        self.axs[4,0].set_xlabel('Move Number')
-        self.axs[4,0].set_ylabel('Time Spent (Seconds)')
+                opp_time = white_times[i]
+                time = black_times[i]
+            if time >= opp_time:
+                if self.result == 2:
+                    up['win'][i] += 1
+                elif self.result == 1:
+                    up['draw'][i] += 1
+                elif self.result == 0:
+                    up['loss'][i] += 1
+            else:
+                if self.result == 2:
+                    down['win'][i] += 1
+                elif self.result == 1:
+                    down['draw'][i] += 1
+                elif self.result == 0:
+                    down['loss'][i] += 1
+        
+    def getClockManagementGraph(self,up,down,x,y,mode):
+        a = np.arange(self.clock_management_move_num)
+        offset = 1 / (2 + 1)
+        up_positions = a - offset
+        down_positions = a + offset
+        self.axs[x,y].bar(up_positions, up['win'], label='Up Win', color='lightgreen')
+        self.axs[x,y].bar(up_positions, up['draw'], bottom=up['win'], label='Up Draw', color='gray')
+        self.axs[x,y].bar(
+            up_positions,
+            up['loss'],
+            bottom=np.array(up['win']) + np.array(up['draw']),
+            label='Up Loss',
+            color='lightcoral',
+        )
+
+        # Plot bars for "Down"
+        self.axs[x,y].bar(down_positions, down['win'], label='Down Win', color='lightgreen')
+        self.axs[x,y].bar(down_positions, down['draw'], bottom=down['win'], label='Down Draw', color='gray')
+        self.axs[x,y].bar(
+            down_positions,
+            down['loss'],
+            bottom=np.array(down['win']) + np.array(down['draw']),
+            label='Down Loss',
+            color='lightcoral',
+        )
+
+        self.axs[x,y].set_xticks([1,10,20,30,40,50])
+        self.axs[x,y].set_xlabel('Move Number')
+        self.axs[x,y].set_ylabel('Percentage')
+        self.axs[x,y].set_title(mode+' Clock Management')'''
 
     def getBoardHeatMapData(self):
-        moves = self.getMoveList()[::8]
+        moves = self.getMoveList(self.getColor())[::8]
         for move in moves:
             i = 0
-            #print(move)
             if 'O-O' in move:
                 add = (0 if self.getColor() == 'black' else 7)
                 self.board[add][6] += 1
@@ -339,13 +415,14 @@ class GameReport:
                     self.board[7-(int(move[1])-1)][ord(move[0])-97] += 1
                 except Exception:
                     return None
+   
     def getBoardHeatMap(self):
-        heatmap = self.axs[4,1].imshow(self.board,cmap = 'coolwarm', interpolation = 'nearest')
-        self.fig.colorbar(heatmap, ax = self.axs[4,1])
-        self.axs[4,1].set_xticks(range(8))
-        self.axs[4,1].set_xticklabels(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
-        self.axs[4,1].set_yticks(range(8))
-        self.axs[4,1].set_yticklabels(['8', '7', '6', '5', '4', '3', '2', '1'])
+        heatmap = self.axs[5,1].imshow(self.board,cmap = 'coolwarm', interpolation = 'nearest')
+        self.fig.colorbar(heatmap, ax = self.axs[5,1])
+        self.axs[5,1].set_xticks(range(8))
+        self.axs[5,1].set_xticklabels(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
+        self.axs[5,1].set_yticks(range(8))
+        self.axs[5,1].set_yticklabels(['8', '7', '6', '5', '4', '3', '2', '1'])
 
     def getOpenings(self):
         try:
@@ -386,10 +463,10 @@ class GameReport:
                 bdata = self.black_openings[opening]
                 btotal = sum(self.black_openings[opening])
                 bopening = opening
-        self.axs[5,0].pie(wdata,labels = ['Loss','Draw','Win'],colors = col, autopct = '%1.1f%%')
-        self.axs[5,0].set_title(wopening)
-        self.axs[5,1].pie(bdata,labels = ['Loss','Draw','Win'],colors = col, autopct = '%1.1f%%')
-        self.axs[5,1].set_title(bopening)
+        self.axs[6,0].pie(wdata,labels = ['Loss','Draw','Win'],colors = col, autopct = '%1.1f%%')
+        self.axs[6,0].set_title(wopening)
+        self.axs[6,1].pie(bdata,labels = ['Loss','Draw','Win'],colors = col, autopct = '%1.1f%%')
+        self.axs[6,1].set_title(bopening)
                   
     def formatSeconds(self,seconds):
         return str(round(seconds/3600))+' hrs'
@@ -404,16 +481,13 @@ class GameReport:
         return self.total
 
     def getColor(self):
-        #print(self.username)
-        #print(self.last_game['white']['username'],self.last_game['black']['username'])
-        #print(self.last_game['url'])
         if self.last_game['white']['username'].lower() == self.username:
             return 'white'
         return 'black'
 
-    def getMoveList(self):
+    def getMoveList(self,col):
         pop = 0
-        if self.last_game['black']['username'].lower() == self.username:
+        if col == 'black':
             pop = 4
         game = self.last_game['pgn'].split()
         while len(game)>0 and game[0] != '1.':
@@ -425,17 +499,28 @@ class GameReport:
             game.pop(0)
         return game
 
-    def getTimeDiff(self,time1,time2):
-        time1 = time1[:-2]
-        time2 = time2[:-2]
-        end = time1.split(':')
-        start = time2.split(':')
-        endtime = 0
-        starttime = 0
+    def getTime(self,time):
+        time = time[:-2].split(':')
+        time_secs = 0
         for i in range(3):
-            endtime += (float(end[i])) * 60**(2-i)
-            starttime += (float(start[i])) * 60**(2-i)
+            time_secs += (float(time[i])) * 60**(2-i)
+        return time_secs
+    
+    def getTimeDiff(self,time1,time2):
+        endtime = self.getTime(time1)
+        starttime = self.getTime(time2)
         return endtime-starttime
+
+    def getTimeList(self,col):
+        times = self.getMoveList(col)
+        if len(times) < 2:
+            return None   
+        times.pop(0)
+        times.pop(0)
+        times = times[::8]
+        if len(times) > 101:
+            times = times[:101]
+        return times
 
     def getGameReport(self,file_path):
         for i in range(self.getNumberOfGames()-1):
@@ -449,6 +534,7 @@ class GameReport:
                 self.getAccuracyLineData()
                 self.getRatingData()
                 self.getMoveTimeData()
+                #self.getClockManagementData()
                 self.getBoardHeatMapData()
                 self.getOpenings()
             else:
@@ -463,7 +549,12 @@ class GameReport:
         self.getGameAccuraciesGraph()
         self.getAccuracyLineGraph()
         self.getRatingGraph()
-        self.getMoveTimeGraph()
+        self.getMoveTimeGraph(self.rapid_move_times,4,0,'Rapid')
+        self.getMoveTimeGraph(self.blitz_move_times,4,1,'Blitz')
+        self.getMoveTimeGraph(self.bullet_move_times,5,0,'Bullet')
+        '''self.getClockManagementGraph(self.rapid_up,self.rapid_down,5,1,'Rapid')
+        self.getClockManagementGraph(self.blitz_up,self.blitz_down,6,0,'Blitz')
+        self.getClockManagementGraph(self.bullet_up,self.bullet_down,6,1,'Bullet')'''
         self.getBoardHeatMap()
         self.getOpeningsGraph()
 
