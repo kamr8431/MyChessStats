@@ -41,6 +41,9 @@ class GameReport:
         self.blitzy = []
         self.rapidx = []
         self.rapidy = []
+        self.avg_rapid_moves = [0,0]
+        self.avg_blitz_moves = [0,0]
+        self.avg_bullet_moves = [0,0]
         self.rapid_move_times = [[0,0]+[] for i in range(100)]
         self.blitz_move_times = [[0,0]+[] for i in range(100)]
         self.bullet_move_times = [[0,0]+[] for i in range(100)]
@@ -292,14 +295,18 @@ class GameReport:
         #return None
         if self.last_game['time_class'] == 'rapid':
             move_times = self.rapid_move_times
+            avg_moves = self.avg_rapid_moves
         elif self.last_game['time_class'] == 'blitz':
             move_times = self.blitz_move_times
+            avg_moves = self.avg_blitz_moves
         elif self.last_game['time_class'] == 'bullet':
             move_times = self.bullet_move_times
+            avg_moves = self.avg_bullet_moves
         times = self.getTimeList(self.getColor())
+        avg_moves[1] += 1
         if times == None:
             return None
-
+        avg_moves[0] += len(times)
         bonus_time = 0
 
         if '+' in self.last_game['time_control']:
@@ -309,7 +316,7 @@ class GameReport:
             move_times[i][0] += self.getTimeDiff(times[i],times[i+1])+bonus_time
             move_times[i][1] += 1
 
-    def getMoveTimeGraph(self,move_times,x,y,mode):
+    def getMoveTimeGraph(self,move_times,avg_moves,x,y,mode):
         if len(move_times)>0:
             for i in range(len(move_times)):
                 if move_times[i][1] == 0:
@@ -319,7 +326,7 @@ class GameReport:
             categories = [str(i) for i in range(1,101)]
             self.axs[x,y].bar(categories,move_times)
         self.axs[x,y].set_xticks([0,9,19,29,39,49,59,69,79,89,99])
-        self.axs[x,y].set_title(mode)
+        self.axs[x,y].set_title(mode+'| Average Moves: '+('0' if avg_moves[1] == 0 else str(round(avg_moves[0]/avg_moves[1]))))
         self.axs[x,y].set_xlabel('Move Number')
         self.axs[x,y].set_ylabel('Time Spent (Seconds)')
     
@@ -549,9 +556,9 @@ class GameReport:
         self.getGameAccuraciesGraph()
         self.getAccuracyLineGraph()
         self.getRatingGraph()
-        self.getMoveTimeGraph(self.rapid_move_times,4,0,'Rapid')
-        self.getMoveTimeGraph(self.blitz_move_times,4,1,'Blitz')
-        self.getMoveTimeGraph(self.bullet_move_times,5,0,'Bullet')
+        self.getMoveTimeGraph(self.rapid_move_times,self.avg_rapid_moves,4,0,'Rapid')
+        self.getMoveTimeGraph(self.blitz_move_times,self.avg_blitz_moves,4,1,'Blitz')
+        self.getMoveTimeGraph(self.bullet_move_times,self.avg_bullet_moves,5,0,'Bullet')
         '''self.getClockManagementGraph(self.rapid_up,self.rapid_down,5,1,'Rapid')
         self.getClockManagementGraph(self.blitz_up,self.blitz_down,6,0,'Blitz')
         self.getClockManagementGraph(self.bullet_up,self.bullet_down,6,1,'Bullet')'''
