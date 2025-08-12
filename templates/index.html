@@ -35,22 +35,33 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        #message {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #555;
+        }
     </style>
 </head>
 <body>
     <h1>Enter Chess.com Username</h1>
-    <form action="/generate_graph" method="post">
+    <form id="statsForm" action="/generate_graph" method="post">
         <label for="username">Username:</label><br>
         <input type="text" id="username" name="username" placeholder="Enter username here" required><br><br>
         <button type="submit">Generate File</button>
     </form>
     <p id="message"></p>
-    <!-- Placeholder for displaying the image -->
+
     {% if graph_url %}
     <h2>Statistics:</h2>
     <img src="{{ graph_url }}" alt="Statistics">
     <br>
     <a href="{{ graph_url }}" download>Click here to download</a>
     {% endif %}
+
+    <script>
+        document.getElementById('statsForm').addEventListener('submit', function() {
+            document.getElementById('message').textContent = 'Loading...';
+        });
+    </script>
 </body>
 </html>
